@@ -130,9 +130,3 @@ indicative of future results, and all investing involves risk, including the
 possible loss of principal. The data may be inaccurate, delayed, or incomplete.
 Use at your own risk; the author accepts no liability for any loss arising from
 use of this software.
-
-## License
-
-_Choose a license (MIT is a common default for projects like this) and add a
-`LICENSE` file. Without one, the default is "all rights reserved," which
-discourages reuse._
