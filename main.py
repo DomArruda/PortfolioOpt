@@ -53,15 +53,15 @@ with st.sidebar:
         "Fitting start", datetime(2021, 1, 1).date(), key="analysis_start"
     )
     analysis_end = st.date_input(
-        "Fitting end", datetime(2022, 12, 31).date(), key="analysis_end"
+        "Fitting end", datetime(2023, 12, 31).date(), key="analysis_end"
     )
 
     st.markdown("**Backtest window** — used to evaluate out-of-sample")
     backtest_start = st.date_input(
-        "Backtest start", datetime(2023, 1, 1).date(), key="backtest_start"
+        "Backtest start", datetime(2024, 1, 1).date(), key="backtest_start"
     )
     backtest_end = st.date_input(
-        "Backtest end", datetime(2023, 12, 31).date(), key="backtest_end"
+        "Backtest end", datetime(2025, 12, 31).date(), key="backtest_end"
     )
 
     run = st.button("Run analysis", type="primary", width='stretch')
