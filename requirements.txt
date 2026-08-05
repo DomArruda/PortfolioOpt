@@ -7,3 +7,4 @@ scikit-learn
 scipy
 statsmodels
 pandas-datareader
+starlette<1.4.0
