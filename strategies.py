@@ -95,8 +95,9 @@ def risk_parity_portfolio(returns):
     """Risk Parity / Equal Risk Contribution Portfolio.
 
     Palomar (2025), Chapter 11 (Risk Parity Portfolios); Maillard, Roncalli &
-    Teiletche (2010). Minimizes squared deviation of risk contributions from
-    equal (1/N) contribution.
+    Teiletche (2010). Minimizes squared deviation of each asset's normalized
+    risk contribution (share of total portfolio risk) from the equal 1/N
+    share.
     """
     R = as_frame(returns)
     n = R.shape[1]
@@ -112,7 +113,14 @@ def risk_parity_portfolio(returns):
     target = _equal_start(n)
 
     def obj(w):
-        return ((risk_contrib(w) - target) ** 2).sum()
+        # Normalized contributions sum to 1, so the 1/N target is reachable.
+        # Comparing raw contributions (which sum to portfolio vol, not 1)
+        # against 1/N would push the solution away from true parity.
+        rc = risk_contrib(w)
+        total = rc.sum()
+        if total <= 0:
+            return 1e6
+        return ((rc / total - target) ** 2).sum()
 
     res = minimize(obj, _equal_start(n), method="SLSQP",
                    bounds=_long_only_bounds(n), constraints=SUM_TO_ONE)
@@ -149,10 +157,11 @@ def momentum_portfolio(returns, lookback=252):
 def eigen_portfolio(returns):
     """Eigenportfolio (first principal component of returns).
 
-    Built from the leading eigenvector of the return (correlation) structure;
-    related to statistical-factor / PCA approaches to covariance modeling
-    discussed in Palomar (2025), Section 3.5 (factor models). The first PC
-    sign is arbitrary, so it is oriented to a positive majority loading.
+    Built from the leading eigenvector of the return covariance matrix
+    (via PCA); related to statistical-factor / PCA approaches to covariance
+    modeling discussed in Palomar (2025), Section 3.5 (factor models). The
+    first PC sign is arbitrary, so it is oriented to a positive majority
+    loading.
     """
     R = as_frame(returns)
     comp = PCA(n_components=1).fit(R).components_[0]
@@ -328,24 +337,50 @@ def hierarchical_risk_parity_portfolio(returns, linkage_method="single"):
 
 
 # Registry ----------------------------------------------------------------
-def build_all(returns, risk_free, market_caps, momentum_lookback=252):
-    """Construct every strategy and return a name -> weight-Series dict,
-    each renormalized and reindexed to the full asset universe."""
+# Canonical display order; main.py's multiselect and the results tables use it.
+STRATEGY_NAMES = [
+    "Equal-Weight",
+    "Minimum Variance",
+    "Maximum Sharpe Ratio",
+    "Risk Parity",
+    "Market-Cap Weighted",
+    "Momentum",
+    "Eigenportfolio",
+    "Min Avg Correlation",
+    "Max Decorrelation",
+    "Max Diversification",
+    "Hierarchical Risk Parity",
+]
+
+# name -> builder(returns, risk_free, market_caps, momentum_lookback)
+_BUILDERS = {
+    "Equal-Weight": lambda r, rf, caps, lb: equal_weight_portfolio(r),
+    "Minimum Variance": lambda r, rf, caps, lb: minimum_variance_portfolio(r),
+    "Maximum Sharpe Ratio": lambda r, rf, caps, lb: maximum_sharpe_ratio_portfolio(r, rf),
+    "Risk Parity": lambda r, rf, caps, lb: risk_parity_portfolio(r),
+    "Market-Cap Weighted": lambda r, rf, caps, lb: market_cap_weighted_portfolio(r, caps),
+    "Momentum": lambda r, rf, caps, lb: momentum_portfolio(r, lookback=lb),
+    "Eigenportfolio": lambda r, rf, caps, lb: eigen_portfolio(r),
+    "Min Avg Correlation": lambda r, rf, caps, lb: min_avg_correlation_portfolio(r),
+    "Max Decorrelation": lambda r, rf, caps, lb: max_decorrelation_portfolio(r),
+    "Max Diversification": lambda r, rf, caps, lb: max_diversification_portfolio(r),
+    "Hierarchical Risk Parity": lambda r, rf, caps, lb: hierarchical_risk_parity_portfolio(r),
+}
+
+
+def build_all(returns, risk_free, market_caps, momentum_lookback=252, selected=None):
+    """Construct the chosen strategies and return a name -> weight-Series
+    dict, each renormalized and reindexed to the full asset universe.
+
+    `selected` is a subset of STRATEGY_NAMES (default: all of them).
+    """
     cols = as_frame(returns).columns
+    chosen = STRATEGY_NAMES if selected is None else [s for s in STRATEGY_NAMES if s in selected]
     portfolios = {
-        "Equal-Weight": equal_weight_portfolio(returns),
-        "Minimum Variance": minimum_variance_portfolio(returns),
-        "Maximum Sharpe Ratio": maximum_sharpe_ratio_portfolio(returns, risk_free),
-        "Risk Parity": risk_parity_portfolio(returns),
-        "Market-Cap Weighted": market_cap_weighted_portfolio(returns, market_caps),
-        "Momentum": momentum_portfolio(returns, lookback=momentum_lookback),
-        "Eigenportfolio": eigen_portfolio(returns),
-        "Min Avg Correlation": min_avg_correlation_portfolio(returns),
-        "Max Decorrelation": max_decorrelation_portfolio(returns),
-        "Max Diversification": max_diversification_portfolio(returns),
-        "Hierarchical Risk Parity": hierarchical_risk_parity_portfolio(returns),
+        name: _BUILDERS[name](returns, risk_free, market_caps, momentum_lookback)
+        for name in chosen
     }
     return {
-        k: (w / w.sum()).reindex(cols).fillna(0.0)
+        k: _normalize(w, cols).reindex(cols).fillna(0.0)
         for k, w in portfolios.items()
     }

@@ -23,7 +23,8 @@ Given a list of tickers and two date ranges, the app:
 1. Downloads adjusted close prices and computes daily returns.
 2. Splits the data into a **fitting window** (used to construct the portfolios)
    and a separate **backtest window** (used only to evaluate them).
-3. Builds eleven portfolios on the fitting window.
+3. Builds any subset of the eleven portfolios (chosen via a multiselect in the
+   sidebar; all eleven by default) on the fitting window.
 4. Scores each on the backtest window: cumulative growth of \$1, total and
    annualized return, volatility, Sharpe, Sortino, max drawdown, and Calmar.
 5. Runs a Fama–French 3-factor regression, a bootstrap of each strategy's
@@ -70,9 +71,9 @@ streamlit run main.py
 ```
 
 The app opens in your browser. Enter tickers in the sidebar (e.g.
-`AAPL, MSFT, GOOGL, AMZN`), set the fitting and backtest windows, and click
-**Run analysis**. All four `.py` files must sit in the same directory so the
-imports resolve.
+`AAPL, MSFT, GOOGL, AMZN`), pick the subset of strategies you want (all eleven
+by default), set the fitting and backtest windows, and click **Run analysis**.
+All four `.py` files must sit in the same directory so the imports resolve.
 
 > Data is fetched live from Yahoo Finance and the Fama–French data library, so
 > an internet connection is required. Symbols or windows with insufficient data

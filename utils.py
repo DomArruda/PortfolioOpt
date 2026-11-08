@@ -48,12 +48,16 @@ def fetch_factor_data(start_date, end_date):
 
 @st.cache_data
 def fetch_data(tickers, start, end):
-    """Return a Close-price DataFrame with one column per ticker.
+    """Return an adjusted-close DataFrame with one column per ticker.
+
+    auto_adjust=True makes yfinance fold splits and dividends into the
+    "Close" column, so pct_change() is a total-return series (the README
+    promises adjusted prices).
 
     yfinance returns a flat frame for a single ticker and a MultiIndex frame
     for multiple tickers, so normalize both cases to a tidy DataFrame.
     """
-    raw = yf.download(tickers, start=start, end=end, progress=False, auto_adjust=False)
+    raw = yf.download(tickers, start=start, end=end, progress=False, auto_adjust=True)
     if raw.empty:
         return pd.DataFrame()
 

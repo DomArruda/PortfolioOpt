@@ -15,7 +15,7 @@ from utils import (
     get_risk_free_rate_scalar,
     get_market_cap,
 )
-from strategies import build_all
+from strategies import build_all, STRATEGY_NAMES
 from metrics import (
     calculate_performance,
     factor_analysis,
@@ -48,6 +48,13 @@ with st.sidebar:
     )
     stock_tickers = [t.strip().upper() for t in ticker_input.split(",") if t.strip()]
 
+    selected_strategies = st.multiselect(
+        "Strategies to include",
+        STRATEGY_NAMES,
+        default=STRATEGY_NAMES,
+        help="Pick any subset; unselected strategies are skipped in the run.",
+    )
+
     st.markdown("**Fitting window** — used to build the portfolios")
     analysis_start = st.date_input(
         "Fitting start", datetime(2021, 1, 1).date(), key="analysis_start"
@@ -77,6 +84,9 @@ if run:
     try:
         if not stock_tickers:
             st.warning("Enter at least one ticker to get started.")
+            st.stop()
+        if not selected_strategies:
+            st.warning("Select at least one strategy to analyze.")
             st.stop()
         if analysis_end <= analysis_start or backtest_end <= backtest_start:
             st.error("Each end date must come after its start date.")
@@ -145,6 +155,7 @@ if run:
                 rf_for_anal,
                 mkt_caps,
                 momentum_lookback=min(252, len(analysis_returns)),
+                selected=selected_strategies,
             )
 
         # Evaluate on the backtest window.
