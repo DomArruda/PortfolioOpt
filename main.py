@@ -6,7 +6,7 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 import streamlit as st
 
 from utils import (
@@ -174,16 +174,28 @@ if run:
 
         # --- Cumulative performance ---
         st.header("Performance comparison")
-        st.caption("Cumulative growth of $1 over the backtest window.")
-        fig, ax = plt.subplots(figsize=(12, 6))
+        st.caption("Cumulative growth of $1 over the backtest window. Hover to inspect specific dates.")
+        fig = go.Figure()
         for name, weights in portfolios.items():
             cum = (1 + (backtest_returns * weights).sum(axis=1)).cumprod()
-            ax.plot(cum.index, cum, label=f'{name} ({results[name]["Total Return"]:.2%})')
-        ax.set_xlabel("Date")
-        ax.set_ylabel("Growth of $1")
-        ax.legend(loc="upper left", fontsize=8, ncol=2)
-        ax.grid(True, alpha=0.3)
-        st.pyplot(fig)
+            fig.add_trace(
+                go.Scatter(
+                    x=cum.index,
+                    y=cum,
+                    mode="lines",
+                    name=f'{name} ({results[name]["Total Return"]:.2%})',
+                    hovertemplate="%{y:.4f}<extra></extra>",
+                )
+            )
+        fig.update_layout(
+            xaxis_title="Date",
+            yaxis_title="Growth of $1",
+            template="plotly_white",
+            hovermode="x unified",
+            legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "x": 0},
+            margin={"l": 10, "r": 10, "t": 30, "b": 10},
+        )
+        st.plotly_chart(fig, width='stretch')
 
         # --- Summary table ---
         st.header("Performance summary")
@@ -328,8 +340,13 @@ Theory and Application_, Cambridge University Press.** Free online edition:
 | Max Diversification (MDivP) | §6.5, eq. (6.17); Choueifaty & Coignard (2008) |
 | Maximum Sharpe Ratio | §7.2 Maximum Sharpe Ratio Portfolio |
 | Risk Parity (ERC) | Ch. 11; Maillard, Roncalli & Teiletche (2010) |
+| Hierarchical Risk Parity (HRP) | §12.3 Hierarchical Clustering-Based Portfolios, Algorithm 12.1 |
 | Eigenportfolio | §3.5 factor models (PCA covariance structure) |
 | Min Avg Correlation | not in the book — heuristic related to MDecP |
+
+Additional sources: López de Prado (2016), "Building Diversified Portfolios
+that Outperform Out of Sample," *Journal of Portfolio Management* (HRP);
+Fama & French (1993) for the factor model.
 
 Factor analysis uses the Fama–French 3-factor model (Fama & French, 1993).
                 """
